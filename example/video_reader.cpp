@@ -8,17 +8,15 @@
 
 using namespace AVCPP_EXAMPLE;
 
-void addFrameAndSourceInfo(std::shared_ptr<BaseMetaData>& frame_metadata)
+void addFrameAndSourceInfo(BaseReader* reader, std::shared_ptr<BaseMetaData>& frame_metadata)
 {
     FrameMetaData* frame = (FrameMetaData*)frame_metadata.get();
-    if (m_reader->isFirstFrame())
+    if (reader->isFirstFrame())
         frame->setFirstFrameFlag();
-    if (m_reader->isLastFrame())
+    if (reader->isLastFrame())
         frame->setFirstFrameFlag();
-    frame->setFrameNum(m_reader->getFrameIndex());
+    frame->setFrameNum(reader->getFrameIndex());
 
-    frame->setSourceName(m_name);
-    frame->setSouceId(m_id);
     return;
 }
 
@@ -92,7 +90,7 @@ int main(int argc, char* argv[])
         }
         if (nullptr != frame_metadata.get())
         {
-            addFrameAndSourceInfo(frame_metadata);
+            addFrameAndSourceInfo(reader.get(), frame_metadata);
         }
     }
     return 0;

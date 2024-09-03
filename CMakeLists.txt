@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(avcpp_example)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
@@ -15,22 +15,9 @@ if(NOT TARGET_PLATFORM)
     set(TARGET_PLATFORM x64)
 endif()
 
-# ffmpeg options
-option(FFMPEG_ENABLED                         "build with ffmpeg lib" ON)
-
-# pipeline test app option
-option(BUILD_PIPELINE_APP                     "build pipeline app" ON)
-
-# add ffmpeg macro definitions
-if(FFMPEG_ENABLED)
-    add_definitions(-DENABLE_FFMPEG_READER)
-endif()
-
 message(STATUS "CMAKE_BUILD_TYPE:            ${CMAKE_BUILD_TYPE}")
 message(STATUS "TARGET_PLATFORM:             ${TARGET_PLATFORM}")
 message(STATUS "CMAKE_SYSTEM_NAME:           ${CMAKE_SYSTEM_NAME}")
-message(STATUS "FFMPEG_ENABLED:              ${FFMPEG_ENABLED}")
-message(STATUS "BUILD_PIPELINE_APP:          ${BUILD_PIPELINE_APP}")
 
 # set runtime opt when msvc
 if(CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -66,9 +53,15 @@ else()
 endif()
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC")
 
-# concurrentqueue
-set(CONCURRENTQUEUE_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/concurrentqueue/include)
-set(PROJECT_INCLUDE_DIRS ${PROJECT_INCLUDE_DIRS} ${CONCURRENTQUEUE_INCLUDE_DIRS})
+# find ffmpeg
+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+    include(cmake/find_ffmpeg_windows.cmake)
+    find_FFmpeg(${FFMPEG_SDK_DIR})
+else()
+    include(cmake/find_ffmpeg_linux.cmake)
+endif()
+set(PROJECT_INCLUDE_DIRS ${PROJECT_INCLUDE_DIRS} ${FFMPEG_INCLUDE_DIRS})
+set(PROJECT_LINK_LIBS ${PROJECT_LINK_LIBS} ${FFMPEG_LIBRARIES})
 
 # spdlog
 set(SPDLOG_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/spdlog/include)
@@ -114,13 +107,11 @@ else()
 endif()
 
 # use avcpp when ffmpeg used
-if(FFMPEG_ENABLED)
-    set(AVCPP_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/avcpp/${TARGET_PLATFORM}/include)
-    set(AVCPP_LIB_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/avcpp/${TARGET_PLATFORM}/lib)
-    set(PROJECT_INCLUDE_DIRS ${PROJECT_INCLUDE_DIRS} ${AVCPP_INCLUDE_DIRS})
-    set(PROJECT_LINK_DIRS ${PROJECT_LINK_DIRS} ${AVCPP_LIB_DIRS})
-    set(PROJECT_LINK_LIBS ${PROJECT_LINK_LIBS} avcpp)
-endif()
+set(AVCPP_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/avcpp/${TARGET_PLATFORM}/include)
+set(AVCPP_LIB_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/avcpp/${TARGET_PLATFORM}/lib)
+set(PROJECT_INCLUDE_DIRS ${PROJECT_INCLUDE_DIRS} ${AVCPP_INCLUDE_DIRS})
+set(PROJECT_LINK_DIRS ${PROJECT_LINK_DIRS} ${AVCPP_LIB_DIRS})
+set(PROJECT_LINK_LIBS ${PROJECT_LINK_LIBS} avcpp)
 
 # common src files
 file(GLOB COMMON_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*.cpp)
@@ -150,8 +141,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${PROJECT_LINK_LIBS})
 
 # TARGET video_reader
 add_executable(video_reader ${CMAKE_CURRENT_SOURCE_DIR}/example/video_reader.cpp)
-target_include_directories(tracker_node_app PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/source
+target_include_directories(video_reader PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${PROJECT_INCLUDE_DIRS})
 
 target_link_directories(video_reader PRIVATE ${PROJECT_LINK_DIRS})
